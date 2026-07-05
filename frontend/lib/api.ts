@@ -1,0 +1,27 @@
+export interface RiskItem {
+  cve: string;
+  score: number;
+  priority: string;
+  cvss: number | null;
+  epss: number | null;
+  percentile: number | null;
+  in_kev: boolean;
+  kev_ransomware: boolean;
+  breakdown: Record<string, unknown>;
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export async function scoreCves(cves: string[]): Promise<RiskItem[]> {
+  const res = await fetch(`${API_URL}/api/score`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cves }),
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail ?? `Request failed (${res.status})`);
+  }
+  const data = await res.json();
+  return data.results as RiskItem[];
+}

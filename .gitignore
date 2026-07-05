@@ -1,1 +1,20 @@
 .aider*
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+
+# Node / Next
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
