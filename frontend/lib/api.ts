@@ -8,6 +8,13 @@ export interface RiskItem {
   in_kev: boolean;
   kev_ransomware: boolean;
   breakdown: Record<string, unknown>;
+  ssvc: {
+    action: "Act" | "Attend" | "Track";
+    exploitation: string;
+    automatable: boolean;
+    technical_impact: string;
+    why: string;
+  };
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";

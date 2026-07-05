@@ -19,6 +19,7 @@ class RiskItem(BaseModel):
     in_kev: bool = False
     kev_ransomware: bool = False
     breakdown: dict = {}
+    ssvc: dict = {}
 
 
 class ScoreResponse(BaseModel):

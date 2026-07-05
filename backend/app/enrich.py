@@ -73,22 +73,37 @@ async def fetch_kev(client: httpx.AsyncClient) -> dict:
         return _kev_cache["data"] or {}
 
 
-async def fetch_cvss(client: httpx.AsyncClient, cve: str) -> float | None:
-    """NVD CVSS base score for one CVE -> float or None."""
+_EMPTY_CVSS = {"cvss": None, "attack_vector": None,
+               "user_interaction": None, "privileges_required": None}
+
+
+async def fetch_cvss(client: httpx.AsyncClient, cve: str) -> dict:
+    """NVD CVSS for one CVE -> {cvss, attack_vector, user_interaction, privileges_required}.
+
+    The vector fields (from CVSS v3.x) feed the SSVC "Automatable" decision;
+    all fields are ``None`` when unavailable so scoring degrades gracefully.
+    """
     headers = {"apiKey": settings.nvd_api_key} if settings.nvd_api_key else {}
     try:
         r = await client.get(NVD_URL, params={"cveId": cve}, headers=headers, timeout=20)
         r.raise_for_status()
         vulns = r.json().get("vulnerabilities", [])
         if not vulns:
-            return None
+            return dict(_EMPTY_CVSS)
         metrics = vulns[0]["cve"].get("metrics", {})
         for key in ("cvssMetricV31", "cvssMetricV30", "cvssMetricV2"):
             if metrics.get(key):
-                return float(metrics[key][0]["cvssData"]["baseScore"])
+                d = metrics[key][0]["cvssData"]
+                return {
+                    "cvss": float(d["baseScore"]),
+                    # v3.x carries these; v2 doesn't -> stays None (not automatable-inferred).
+                    "attack_vector": d.get("attackVector"),
+                    "user_interaction": d.get("userInteraction"),
+                    "privileges_required": d.get("privilegesRequired"),
+                }
     except Exception:
-        return None
-    return None
+        return dict(_EMPTY_CVSS)
+    return dict(_EMPTY_CVSS)
 
 
 async def enrich(cves: list[str]) -> dict:
@@ -116,8 +131,9 @@ async def enrich(cves: list[str]) -> dict:
     out: dict = {}
     for c in cves:
         epss, pct = epss_map.get(c, (None, None))
+        cvss_data = cvss_map.get(c) or _EMPTY_CVSS
         out[c] = {
-            "cvss": cvss_map.get(c),
+            **cvss_data,  # cvss, attack_vector, user_interaction, privileges_required
             "epss": epss,
             "percentile": pct,
             "in_kev": c in kev_map,

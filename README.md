@@ -2,11 +2,13 @@
 
 # RiskSense
 
-**CVE risk prioritization that reflects real-world exploitation — not just severity.**
+**CVE triage that gives you a decision, not just a number.**
 
-Blends **CVSS** (severity), **EPSS** (exploit probability), and the **CISA KEV** catalog
-(confirmed active exploitation) into a single, explainable 0–100 score, so you patch what
-actually matters first.
+Most tools (and every commercial scanner) hand you an opaque 0–100 risk score. RiskSense
+also outputs a transparent **SSVC decision — Act / Attend / Track** — the CISA / CMU-SEI
+methodology that prioritizes by *what to do*, not just *how bad it is*, with the reasoning
+shown for every CVE. Blends **CVSS** (severity), **EPSS** (exploit probability), and the
+**CISA KEV** catalog (active exploitation) — instantly, no agent, no account.
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
@@ -43,6 +45,29 @@ if KEV + ransomware use:     score = max(score, 95)       # top of the queue
 ```
 
 **Priority bands:** `Critical ≥ 90 · High ≥ 70 · Medium ≥ 40 · Low < 40`
+
+## SSVC decision — the differentiator
+
+The 0–100 score ranks; the **SSVC action tells you what to do**. RiskSense derives it from
+three intrinsic decision points (the environmental/mission dimension needs asset context the
+tool doesn't have, so it's omitted and decisions stay conservative):
+
+| Decision point | Derived from | Values |
+|---|---|---|
+| **Exploitation** | CISA KEV / EPSS | `active` (KEV) · `poc` (EPSS ≥ 0.1) · `none` |
+| **Automatable** | CVSS vector | `yes` if network-reachable **and** no auth **and** no user interaction |
+| **Technical impact** | CVSS base | `total` (≥ 9.0) · `partial` |
+
+```
+active   + (total OR automatable)   → Act       # exploited now, high impact — patch first
+active   + partial (not automatable)→ Attend
+poc      + (total OR automatable)   → Attend     # exploit code likely exists
+none/low                            → Track      # routine patch cycle
+```
+
+Results are **ranked by action tier first** (every Act above every Attend, above every
+Track), then by score. Hover any action in the UI to see the exact reasoning; it's also in
+the API (`ssvc.why`) and the CSV export.
 
 Missing signals degrade gracefully — an unknown CVSS never blanks out an otherwise scorable
 CVE. Every response includes a `breakdown` so the score is explainable, not a black box.

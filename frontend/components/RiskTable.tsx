@@ -7,6 +7,14 @@ const bandColor: Record<string, string> = {
   Low: "bg-slate-500/15 text-slate-300 border-slate-500/30",
 };
 
+// SSVC action — the decision, not just the number. Bolder than the priority
+// band on purpose: it's what the user acts on.
+const actionColor: Record<string, string> = {
+  Act: "bg-red-500/20 text-red-200 border-red-500/40 font-semibold",
+  Attend: "bg-amber-500/20 text-amber-200 border-amber-500/40",
+  Track: "bg-slate-500/15 text-slate-400 border-slate-500/30",
+};
+
 function pct(x: number | null): string {
   return x === null ? "—" : `${(x * 100).toFixed(1)}%`;
 }
@@ -19,6 +27,7 @@ export default function RiskTable({ results }: { results: RiskItem[] }) {
           <tr>
             <th className="px-3 py-2 text-left font-medium">#</th>
             <th className="px-3 py-2 text-left font-medium">CVE</th>
+            <th className="px-3 py-2 text-left font-medium">Action</th>
             <th className="px-3 py-2 text-left font-medium">RiskSense</th>
             <th className="px-3 py-2 text-left font-medium">Priority</th>
             <th className="px-3 py-2 text-left font-medium">CVSS</th>
@@ -39,6 +48,14 @@ export default function RiskTable({ results }: { results: RiskItem[] }) {
                 >
                   {r.cve}
                 </a>
+              </td>
+              <td className="px-3 py-2">
+                <span
+                  className={`cursor-help rounded border px-2 py-0.5 text-xs ${actionColor[r.ssvc?.action] ?? ""}`}
+                  title={r.ssvc?.why ?? "SSVC decision"}
+                >
+                  {r.ssvc?.action ?? "—"}
+                </span>
               </td>
               <td className="px-3 py-2">
                 <div className="flex items-center gap-2">

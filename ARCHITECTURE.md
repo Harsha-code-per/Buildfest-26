@@ -139,9 +139,26 @@ What the numbers *mean*:
 
 `priority_band()` maps the score to Critical (≥90) / High (≥70) / Medium (≥40) / Low.
 
+**Then the differentiator — `scoring.ssvc()`** turns the same signals into a *decision*, not
+just a number. It's the CISA / CMU-SEI **SSVC** (Stakeholder-Specific Vulnerability
+Categorization) methodology, computed from three intrinsic decision points:
+
+- **Exploitation** — `active` if in KEV, `poc` if EPSS ≥ `EPSS_POC` (0.1), else `none`.
+- **Automatable** — `yes` only when the CVSS vector says network-reachable **and** no auth
+  **and** no user interaction (mass-exploitable). Conservative: unknown vector → `no`.
+- **Technical impact** — `total` if CVSS ≥ 9, else `partial`.
+
+These collapse to an action — **Act / Attend / Track** — plus a `why` reasoning string, so the
+decision is fully transparent (unlike commercial black-box risk scores). The
+environmental/mission dimension of full SSVC is intentionally omitted because RiskSense has no
+asset context; this keeps decisions conservative and honest.
+
 ### Step 6 — Ranking & response
-`scoring.rank()` sorts results **highest-risk first** (the entire point of the tool).
-`main.py` wraps them in `ScoreResponse{ results, count }` and returns JSON.
+`scoring.rank()` sorts by **SSVC action tier first** (every `Act` above every `Attend`, above
+every `Track`), then by score to break ties within a tier. The decision drives the order; the
+number refines it. `main.py` wraps the results in `ScoreResponse{ results, count }` as JSON —
+each item now carries an `ssvc` object (`action`, `exploitation`, `automatable`,
+`technical_impact`, `why`).
 
 ### Step 7 — Render (browser)
 `RiskTable.tsx` renders the ranked rows: a score bar, colour-coded priority badge,
@@ -232,8 +249,9 @@ PR to `main`.
 CVE IDs (textarea)
    → POST /api/score
    → normalize + validate  (reject garbage → 400)
-   → enrich  (NVD CVSS ‖ FIRST EPSS ‖ CISA KEV, concurrent, best-effort)
+   → enrich  (NVD CVSS+vector ‖ FIRST EPSS ‖ CISA KEV, concurrent, best-effort)
    → score   (severity × likelihood, floored by active-exploitation evidence)
-   → rank    (highest risk first)
-   → JSON    → RiskTable + CSV export
+   → ssvc    (Act / Attend / Track decision + reasoning, from the same signals)
+   → rank    (by action tier, then score)
+   → JSON    → RiskTable (Action column + reasoning tooltip) + CSV export
 ```

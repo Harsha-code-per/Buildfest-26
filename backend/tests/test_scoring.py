@@ -46,3 +46,46 @@ def test_bands():
     assert priority_band(70) == "High"
     assert priority_band(40) == "Medium"
     assert priority_band(39.9) == "Low"
+
+
+# --- SSVC decision (the differentiator) -------------------------------------
+
+def test_ssvc_active_total_is_act():
+    d = score_cve("X", cvss=10.0, epss=0.9, in_kev=True).ssvc
+    assert d["exploitation"] == "active"
+    assert d["technical_impact"] == "total"
+    assert d["action"] == "Act"
+
+
+def test_ssvc_active_partial_not_automatable_is_attend():
+    # KEV but weak, unknown vector -> not escalated to Act.
+    d = score_cve("X", cvss=5.0, epss=0.1, in_kev=True).ssvc
+    assert d["action"] == "Attend"
+
+
+def test_ssvc_automatable_escalates():
+    base = score_cve("X", cvss=5.0, epss=0.1, in_kev=True).ssvc
+    auto = score_cve("X", cvss=5.0, epss=0.1, in_kev=True,
+                     attack_vector="NETWORK", user_interaction="NONE",
+                     privileges_required="NONE").ssvc
+    assert base["automatable"] is False and base["action"] == "Attend"
+    assert auto["automatable"] is True and auto["action"] == "Act"
+
+
+def test_ssvc_poc_high_severity_is_attend():
+    d = score_cve("X", cvss=9.8, epss=0.9).ssvc  # no KEV -> poc, total
+    assert d["exploitation"] == "poc" and d["action"] == "Attend"
+
+
+def test_ssvc_quiet_low_signal_is_track():
+    d = score_cve("X", cvss=4.0, epss=0.01).ssvc
+    assert d["exploitation"] == "none" and d["action"] == "Track"
+
+
+def test_rank_puts_action_tier_above_raw_score():
+    # Attend item scores LOWER than a Track item; action tier must still win.
+    attend = score_cve("ATTEND", cvss=5.0, epss=0.1, attack_vector="NETWORK",
+                       user_interaction="NONE", privileges_required="NONE")
+    track = score_cve("TRACK", cvss=8.0, epss=0.05)
+    assert attend.score < track.score          # raw score would rank track first
+    assert [r.cve for r in rank([track, attend])] == ["ATTEND", "TRACK"]

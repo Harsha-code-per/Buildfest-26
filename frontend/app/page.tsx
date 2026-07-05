@@ -30,9 +30,10 @@ export default function Home() {
 
   function exportCsv() {
     const rows = [
-      ["cve", "score", "priority", "cvss", "epss", "in_kev", "kev_ransomware"],
+      ["cve", "action", "score", "priority", "cvss", "epss", "in_kev", "kev_ransomware"],
       ...results.map((r) => [
-        r.cve, r.score, r.priority, r.cvss ?? "", r.epss ?? "", r.in_kev, r.kev_ransomware,
+        r.cve, r.ssvc?.action ?? "", r.score, r.priority,
+        r.cvss ?? "", r.epss ?? "", r.in_kev, r.kev_ransomware,
       ]),
     ];
     const csv = rows.map((r) => r.join(",")).join("\n");
@@ -51,8 +52,9 @@ export default function Home() {
           Risk<span className="text-sky-400">Sense</span>
         </h1>
         <p className="mt-1 text-slate-400">
-          CVE risk prioritization — blends <b>CVSS</b> severity, <b>EPSS</b> exploit probability,
-          and <b>CISA KEV</b> active-exploitation intel into one actionable score.
+          CVE triage that gives you a <b>decision</b>, not just a number — a transparent{" "}
+          <b>SSVC</b> action (Act / Attend / Track) from <b>CVSS</b> severity, <b>EPSS</b>{" "}
+          exploit probability, and <b>CISA KEV</b> active-exploitation intel. Reasoning shown, no setup.
         </p>
       </header>
 
@@ -93,8 +95,10 @@ export default function Home() {
         <div className="mt-6">
           <RiskTable results={results} />
           <p className="mt-2 text-xs text-slate-500">
-            Ranked highest-risk first. KEV entries are floored to Critical because active
-            exploitation outweighs theoretical severity.
+            Ranked by SSVC action (Act → Attend → Track), then score. Hover an{" "}
+            <b>Action</b> to see the reasoning. SSVC (CISA/CMU-SEI) prioritizes by what to
+            do, not just severity; the environmental/mission dimension is omitted (no asset
+            context), so decisions are intentionally conservative.
           </p>
         </div>
       )}
