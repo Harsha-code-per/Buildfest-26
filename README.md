@@ -117,7 +117,7 @@ Interactive docs at `/docs` (Swagger UI). `GET /health` for liveness.
 | Variable | Default | Notes |
 |---|---|---|
 | `NVD_API_KEY` | *(none)* | Optional [free key](https://nvd.nist.gov/developers/request-an-api-key) — raises rate limit 5 → 50 req/30s |
-| `NVD_CONCURRENCY` | `3` | Parallel NVD lookups |
+| `NVD_DELAY` | `6.0` / `0.6` | Seconds between NVD calls; default depends on whether a key is set |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Backend URL for the frontend |
 

@@ -43,10 +43,14 @@ async def fetch_epss(client: httpx.AsyncClient, cves: list[str]) -> dict:
     try:
         r = await client.get(EPSS_URL, params={"cve": ",".join(cves)}, timeout=15)
         r.raise_for_status()
-        return {
-            d["cve"].upper(): (float(d["epss"]), float(d["percentile"]))
-            for d in r.json().get("data", [])
-        }
+        out: dict = {}
+        for d in r.json().get("data", []):
+            # Guard per row: one malformed entry shouldn't drop the whole batch.
+            try:
+                out[d["cve"].upper()] = (float(d["epss"]), float(d["percentile"]))
+            except (KeyError, TypeError, ValueError):
+                continue
+        return out
     except Exception:
         return {}
 
@@ -90,19 +94,25 @@ async def fetch_cvss(client: httpx.AsyncClient, cve: str) -> float | None:
 async def enrich(cves: list[str]) -> dict:
     """Gather CVSS + EPSS + KEV for a list of CVEs -> {cve: signals}."""
     async with httpx.AsyncClient() as client:
-        sem = asyncio.Semaphore(settings.nvd_concurrency)
 
-        async def one_cvss(cve: str):
-            async with sem:  # NVD is per-CVE and rate-limited
-                return cve, await fetch_cvss(client, cve)
+        async def all_cvss() -> dict:
+            # NVD is per-CVE and rate-limited: query sequentially, spacing each
+            # call by nvd_delay so a large batch doesn't burst into 403s (which
+            # would silently blank out CVSS for most CVEs). Runs concurrently
+            # with the batched EPSS + cached KEV lookups.
+            out: dict = {}
+            for i, cve in enumerate(cves):
+                if i:
+                    await asyncio.sleep(settings.nvd_delay)
+                out[cve] = await fetch_cvss(client, cve)
+            return out
 
-        epss_map, kev_map, cvss_pairs = await asyncio.gather(
+        epss_map, kev_map, cvss_map = await asyncio.gather(
             fetch_epss(client, cves),
             fetch_kev(client),
-            asyncio.gather(*(one_cvss(c) for c in cves)),
+            all_cvss(),
         )
 
-    cvss_map = dict(cvss_pairs)
     out: dict = {}
     for c in cves:
         epss, pct = epss_map.get(c, (None, None))

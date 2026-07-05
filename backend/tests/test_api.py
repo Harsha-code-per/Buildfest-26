@@ -32,3 +32,11 @@ def test_rejects_garbage_input():
 
 def test_health():
     assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_normalize_cves_dedupes_and_validates():
+    out = enrich_mod.normalize_cves(
+        [" cve-2021-44228 ", "CVE-2021-44228", "not-a-cve", "CVE-2014-0160"]
+    )
+    # Upper-cased + trimmed, order-preserving dedup, garbage dropped.
+    assert out == ["CVE-2021-44228", "CVE-2014-0160"]
