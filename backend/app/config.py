@@ -5,6 +5,12 @@ pull in pydantic-settings for three optional values.
 """
 import os
 
+from dotenv import load_dotenv
+
+# Load backend/.env (12-factor) before reading any variable, so a plain
+# `uvicorn app.main:app` (or pytest) picks up NVD_API_KEY without extra flags.
+load_dotenv()
+
 
 class Settings:
     # Optional free NVD API key raises the rate limit from 5 to 50 req / 30s.

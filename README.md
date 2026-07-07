@@ -69,6 +69,22 @@ Results are **ranked by action tier first** (every Act above every Attend, above
 Track), then by score. Hover any action in the UI to see the exact reasoning; it's also in
 the API (`ssvc.why`) and the CSV export.
 
+## CISA deadline clock — the second differentiator
+
+Every KEV entry carries a **binding remediation deadline** (CISA BOD 22-01, the `dueDate`
+field). Scanners download it; almost none show it. RiskSense turns it into a triage clock:
+
+| SLA state | Meaning |
+|---|---|
+| `overdue` | The federally-mandated deadline has **already passed** — e.g. *"12d past CISA deadline"* |
+| `due` | KEV, deadline still ahead — *"9d until CISA deadline"* |
+| `none` | Not in KEV — no mandate |
+
+Within an action tier, **overdue CVEs outrank on-time ones** — the fire you're already late
+on gets triaged first. Surfaced in the UI's *Deadline* column, the API (`sla`, `days_overdue`),
+and the CSV. It reframes a finding from *"is it exploited?"* to *"you are past a legal deadline
+on something exploited right now."*
+
 Missing signals degrade gracefully — an unknown CVSS never blanks out an otherwise scorable
 CVE. Every response includes a `breakdown` so the score is explainable, not a black box.
 

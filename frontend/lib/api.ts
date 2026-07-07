@@ -7,6 +7,7 @@ export interface RiskItem {
   percentile: number | null;
   in_kev: boolean;
   kev_ransomware: boolean;
+  days_overdue: number | null;
   breakdown: Record<string, unknown>;
   ssvc: {
     action: "Act" | "Attend" | "Track";
@@ -14,6 +15,11 @@ export interface RiskItem {
     automatable: boolean;
     technical_impact: string;
     why: string;
+  };
+  sla: {
+    state: "overdue" | "due" | "none";
+    days_overdue: number | null;
+    label: string;
   };
 }
 

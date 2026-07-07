@@ -108,6 +108,24 @@ def ssvc(
     }
 
 
+def sla_status(in_kev: bool, days_overdue: int | None) -> dict:
+    """Turn the CISA binding deadline into a triage clock.
+
+    Only KEV CVEs carry a federal due date (BOD 22-01). ``days_overdue`` > 0
+    means the remediation deadline has passed — the single most actionable fact
+    a scanner can show and the one most of them bury. Non-KEV CVEs have no
+    mandate, so state is ``none``.
+    """
+    if not in_kev or days_overdue is None:
+        return {"state": "none", "days_overdue": None, "label": "No federal deadline"}
+    if days_overdue > 0:
+        return {"state": "overdue", "days_overdue": days_overdue,
+                "label": f"{days_overdue}d past CISA deadline"}
+    remaining = -days_overdue
+    return {"state": "due", "days_overdue": days_overdue,
+            "label": f"{remaining}d until CISA deadline"}
+
+
 @dataclass
 class RiskResult:
     cve: str
@@ -118,8 +136,10 @@ class RiskResult:
     percentile: float | None
     in_kev: bool
     kev_ransomware: bool
+    days_overdue: int | None = None
     breakdown: dict = field(default_factory=dict)
     ssvc: dict = field(default_factory=dict)
+    sla: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -135,6 +155,7 @@ def score_cve(
     attack_vector: str | None = None,
     user_interaction: str | None = None,
     privileges_required: str | None = None,
+    days_overdue: int | None = None,
 ) -> RiskResult:
     """Compute the composite RiskSense score + SSVC decision for a single CVE.
 
@@ -159,22 +180,30 @@ def score_cve(
     }
     decision = ssvc(cvss, epss, in_kev, attack_vector,
                     user_interaction, privileges_required)
+    sla = sla_status(in_kev, days_overdue)
     return RiskResult(
         cve=cve, score=score, priority=priority_band(score),
         cvss=cvss, epss=epss, percentile=percentile,
         in_kev=in_kev, kev_ransomware=kev_ransomware,
-        breakdown=breakdown, ssvc=decision,
+        days_overdue=days_overdue,
+        breakdown=breakdown, ssvc=decision, sla=sla,
     )
 
 
 def rank(results: list[RiskResult]) -> list[RiskResult]:
-    """Sort by SSVC action first (Act > Attend > Track), then by score.
+    """Sort by SSVC action, then overdue urgency, then score.
 
-    The action tier is the decision that matters; the numeric score breaks ties
-    *within* a tier so the ordering is total and stable.
+    The action tier is the decision that matters most; *within* a tier a CVE
+    that is already past its binding CISA deadline outranks one that isn't
+    (that's the fire to put out first); the numeric score breaks any remaining
+    ties so the ordering is total and stable.
     """
+    def overdue_key(r: RiskResult) -> int:
+        # Positive days overdue only; future/absent deadlines don't jump the queue.
+        return max(r.days_overdue or 0, 0)
+
     return sorted(
         results,
-        key=lambda r: (SSVC_WEIGHT.get(r.ssvc.get("action"), 0), r.score),
+        key=lambda r: (SSVC_WEIGHT.get(r.ssvc.get("action"), 0), overdue_key(r), r.score),
         reverse=True,
     )

@@ -1,5 +1,5 @@
 """Deterministic, offline tests for the scoring engine — the core logic gate."""
-from app.scoring import priority_band, rank, score_cve
+from app.scoring import priority_band, rank, score_cve, sla_status
 
 
 def test_log4shell_is_critical():
@@ -89,3 +89,39 @@ def test_rank_puts_action_tier_above_raw_score():
     track = score_cve("TRACK", cvss=8.0, epss=0.05)
     assert attend.score < track.score          # raw score would rank track first
     assert [r.cve for r in rank([track, attend])] == ["ATTEND", "TRACK"]
+
+
+# --- SLA / CISA binding-deadline clock (the market differentiator) ----------
+
+def test_sla_none_without_kev():
+    d = sla_status(in_kev=False, days_overdue=None)
+    assert d["state"] == "none" and d["days_overdue"] is None
+
+
+def test_sla_overdue_label():
+    d = sla_status(in_kev=True, days_overdue=12)
+    assert d["state"] == "overdue" and d["days_overdue"] == 12
+    assert "past" in d["label"].lower()
+
+
+def test_sla_due_in_future():
+    d = sla_status(in_kev=True, days_overdue=-5)  # deadline 5 days away
+    assert d["state"] == "due" and "until" in d["label"].lower()
+
+
+def test_kev_without_due_date_is_none():
+    # KEV membership but no parseable due date -> no false deadline claimed.
+    assert sla_status(in_kev=True, days_overdue=None)["state"] == "none"
+
+
+def test_score_cve_carries_sla():
+    r = score_cve("X", cvss=9.8, epss=0.9, in_kev=True, days_overdue=30)
+    assert r.days_overdue == 30 and r.sla["state"] == "overdue"
+
+
+def test_overdue_breaks_ties_within_action_tier():
+    # Two Act items, same score; the overdue one must rank first.
+    fresh = score_cve("FRESH", cvss=10.0, epss=0.9, in_kev=True, days_overdue=-3)
+    late = score_cve("LATE", cvss=10.0, epss=0.9, in_kev=True, days_overdue=40)
+    assert fresh.ssvc["action"] == late.ssvc["action"] == "Act"
+    assert [r.cve for r in rank([fresh, late])] == ["LATE", "FRESH"]

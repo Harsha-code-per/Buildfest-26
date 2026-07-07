@@ -18,8 +18,10 @@ class RiskItem(BaseModel):
     percentile: float | None = None
     in_kev: bool = False
     kev_ransomware: bool = False
+    days_overdue: int | None = None
     breakdown: dict = {}
     ssvc: dict = {}
+    sla: dict = {}
 
 
 class ScoreResponse(BaseModel):

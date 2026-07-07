@@ -34,5 +34,9 @@ async def score(req: ScoreRequest) -> ScoreResponse:
     if not cves:
         raise HTTPException(400, "No valid CVE IDs (expected format: CVE-YYYY-NNNN).")
     signals = await enrich_mod.enrich(cves)
-    results = rank([score_cve(c, **signals[c]) for c in cves])
+    # kev_due_date is display-only metadata; days_overdue is the scored signal.
+    results = rank([
+        score_cve(c, **{k: v for k, v in signals[c].items() if k != "kev_due_date"})
+        for c in cves
+    ])
     return ScoreResponse(results=[RiskItem(**r.to_dict()) for r in results], count=len(results))

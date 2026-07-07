@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import re
 import time
+from datetime import date
 
 import httpx
 
@@ -56,7 +57,13 @@ async def fetch_epss(client: httpx.AsyncClient, cves: list[str]) -> dict:
 
 
 async def fetch_kev(client: httpx.AsyncClient) -> dict:
-    """CISA KEV catalog, cached -> {cveID: is_ransomware(bool)}."""
+    """CISA KEV catalog, cached -> {cveID: {"ransomware": bool, "due_date": str|None}}.
+
+    ``due_date`` is CISA's *binding* remediation deadline (BOD 22-01) — the field
+    commercial scanners collect but rarely surface. RiskSense turns it into an
+    overdue clock so an actively-exploited CVE reads "12 days past a federal
+    deadline", not just "exploited".
+    """
     now = time.time()
     if _kev_cache["data"] is not None and now - _kev_cache["ts"] < KEV_TTL:
         return _kev_cache["data"]
@@ -64,13 +71,29 @@ async def fetch_kev(client: httpx.AsyncClient) -> dict:
         r = await client.get(KEV_URL, timeout=30)
         r.raise_for_status()
         data = {
-            v["cveID"].upper(): (v.get("knownRansomwareCampaignUse", "").lower() == "known")
+            v["cveID"].upper(): {
+                "ransomware": v.get("knownRansomwareCampaignUse", "").lower() == "known",
+                "due_date": v.get("dueDate") or None,
+            }
             for v in r.json().get("vulnerabilities", [])
         }
         _kev_cache.update(data=data, ts=now)
         return data
     except Exception:
         return _kev_cache["data"] or {}
+
+
+def _days_overdue(due_date: str | None) -> int | None:
+    """Whole days past a CISA due date (YYYY-MM-DD). None if absent/unparseable.
+
+    Negative means the deadline is still in the future (days remaining).
+    """
+    if not due_date:
+        return None
+    try:
+        return (date.today() - date.fromisoformat(due_date)).days
+    except ValueError:
+        return None
 
 
 _EMPTY_CVSS = {"cvss": None, "attack_vector": None,
@@ -132,11 +155,15 @@ async def enrich(cves: list[str]) -> dict:
     for c in cves:
         epss, pct = epss_map.get(c, (None, None))
         cvss_data = cvss_map.get(c) or _EMPTY_CVSS
+        kev = kev_map.get(c)  # {"ransomware", "due_date"} or None
+        due_date = kev["due_date"] if kev else None
         out[c] = {
             **cvss_data,  # cvss, attack_vector, user_interaction, privileges_required
             "epss": epss,
             "percentile": pct,
-            "in_kev": c in kev_map,
-            "kev_ransomware": kev_map.get(c, False),
+            "in_kev": kev is not None,
+            "kev_ransomware": bool(kev and kev["ransomware"]),
+            "kev_due_date": due_date,
+            "days_overdue": _days_overdue(due_date),
         }
     return out
