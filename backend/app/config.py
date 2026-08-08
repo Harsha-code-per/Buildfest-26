@@ -21,6 +21,10 @@ class Settings:
     nvd_delay: float = float(os.getenv("NVD_DELAY", "0.6" if os.getenv("NVD_API_KEY") else "6.0"))
     # Comma-separated allowed CORS origins ("*" for any).
     cors_origins: str = os.getenv("CORS_ORIGINS", "*")
+    # Optional OpenAI API key for AI-driven triage summaries & remediation advice.
+    openai_api_key: str | None = os.getenv("OPENAI_API_KEY") or None
+    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
 settings = Settings()
+

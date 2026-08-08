@@ -42,6 +42,7 @@ export default function RiskTable({ results }: { results: RiskItem[] }) {
             <th className="px-3 py-2.5 text-left font-medium">EPSS</th>
             <th className="px-3 py-2.5 text-left font-medium">KEV</th>
             <th className="px-3 py-2.5 text-left font-medium">Deadline</th>
+            <th className="px-3 py-2.5 text-left font-medium">AI Remediation</th>
           </tr>
         </thead>
         <tbody>
@@ -111,8 +112,18 @@ export default function RiskTable({ results }: { results: RiskItem[] }) {
                   <span className="text-slate-600">—</span>
                 )}
               </td>
+              <td className="px-3 py-2.5 text-xs text-slate-300 max-w-xs leading-snug">
+                {r.ai_remediation ? (
+                  <span className="text-sky-200/90" title="GPT-4o-mini AI Actionable Remediation">
+                    {r.ai_remediation}
+                  </span>
+                ) : (
+                  <span className="text-slate-600">—</span>
+                )}
+              </td>
             </tr>
           ))}
+
         </tbody>
       </table>
     </div>

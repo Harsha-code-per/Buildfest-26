@@ -6,7 +6,10 @@ services:
     environment:
       # Optional: raises NVD rate limit from 5 to 50 req/30s.
       - NVD_API_KEY=${NVD_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
       - CORS_ORIGINS=http://localhost:3000
+
 
   frontend:
     build: ./frontend

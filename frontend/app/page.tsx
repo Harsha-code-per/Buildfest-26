@@ -27,18 +27,22 @@ const STEPS = [
 export default function Home() {
   const [input, setInput] = useState(EXAMPLE);
   const [results, setResults] = useState<RiskItem[]>([]);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function run() {
     setLoading(true);
     setError(null);
+    setAiSummary(null);
     try {
       const cves = input
         .split(/[\s,]+/)
         .map((s) => s.trim())
         .filter(Boolean);
-      setResults(await scoreCves(cves));
+      const res = await scoreCves(cves);
+      setResults(res.results);
+      setAiSummary(res.ai_summary ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -48,10 +52,11 @@ export default function Home() {
 
   function exportCsv() {
     const rows = [
-      ["cve", "action", "score", "priority", "cvss", "epss", "in_kev", "kev_ransomware", "days_overdue"],
+      ["cve", "action", "score", "priority", "cvss", "epss", "in_kev", "kev_ransomware", "days_overdue", "ai_remediation"],
       ...results.map((r) => [
         r.cve, r.ssvc?.action ?? "", r.score, r.priority,
         r.cvss ?? "", r.epss ?? "", r.in_kev, r.kev_ransomware, r.days_overdue ?? "",
+        `"${(r.ai_remediation ?? "").replace(/"/g, '""')}"`,
       ]),
     ];
     const csv = rows.map((r) => r.join(",")).join("\n");
@@ -139,18 +144,34 @@ export default function Home() {
           )}
 
           {results.length > 0 && (
-            <div className="mt-6">
-              <RiskTable results={results} />
-              <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                Ranked by SSVC action (Act → Attend → Track), then score. Hover an{" "}
-                <b className="text-slate-400">Action</b> for the reasoning. The
-                environmental/mission dimension of full SSVC is omitted (no asset context),
-                so decisions stay conservative.
-              </p>
+            <div className="mt-6 space-y-6">
+              {aiSummary && (
+                <div className="relative overflow-hidden rounded-xl border border-sky-500/30 bg-sky-950/20 p-5 backdrop-blur-md">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-sky-400 animate-ping" />
+                    <span className="rounded-md bg-gradient-to-r from-sky-500/20 to-purple-500/20 border border-sky-400/30 px-2.5 py-0.5 text-xs font-semibold text-sky-300">
+                      GPT-4o-mini Triage Advisor
+                    </span>
+                    <span className="text-xs text-slate-400">Lean IT Executive Briefing</span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-slate-200">{aiSummary}</p>
+                </div>
+              )}
+
+              <div>
+                <RiskTable results={results} />
+                <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                  Ranked by SSVC action (Act → Attend → Track), then score. Hover an{" "}
+                  <b className="text-slate-400">Action</b> for the reasoning. The
+                  environmental/mission dimension of full SSVC is omitted (no asset context),
+                  so decisions stay conservative.
+                </p>
+              </div>
             </div>
           )}
         </div>
       </section>
+
 
       {/* ---- How it works ---- */}
       <section className="mx-auto max-w-5xl px-6 pb-24">

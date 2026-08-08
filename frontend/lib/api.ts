@@ -21,11 +21,18 @@ export interface RiskItem {
     days_overdue: number | null;
     label: string;
   };
+  ai_remediation?: string | null;
+}
+
+export interface ScoreResultResponse {
+  results: RiskItem[];
+  count: number;
+  ai_summary?: string | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-export async function scoreCves(cves: string[]): Promise<RiskItem[]> {
+export async function scoreCves(cves: string[]): Promise<ScoreResultResponse> {
   const res = await fetch(`${API_URL}/api/score`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -36,5 +43,10 @@ export async function scoreCves(cves: string[]): Promise<RiskItem[]> {
     throw new Error(detail.detail ?? `Request failed (${res.status})`);
   }
   const data = await res.json();
-  return data.results as RiskItem[];
+  return {
+    results: data.results as RiskItem[],
+    count: data.count as number,
+    ai_summary: (data.ai_summary as string | null) ?? null,
+  };
 }
+

@@ -22,8 +22,11 @@ class RiskItem(BaseModel):
     breakdown: dict = {}
     ssvc: dict = {}
     sla: dict = {}
+    ai_remediation: str | None = None
 
 
 class ScoreResponse(BaseModel):
     results: list[RiskItem]
     count: int
+    ai_summary: str | None = None
+

@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from . import ai as ai_mod
 from . import enrich as enrich_mod
 from .config import settings
 from .models import RiskItem, ScoreRequest, ScoreResponse
@@ -39,4 +40,19 @@ async def score(req: ScoreRequest) -> ScoreResponse:
         score_cve(c, **{k: v for k, v in signals[c].items() if k != "kev_due_date"})
         for c in cves
     ])
-    return ScoreResponse(results=[RiskItem(**r.to_dict()) for r in results], count=len(results))
+    raw_dicts = [r.to_dict() for r in results]
+    ai_summary, ai_remediations = await ai_mod.generate_ai_triage(raw_dicts)
+    if ai_remediations:
+        norm_map = {str(k).strip().upper(): str(v) for k, v in ai_remediations.items()}
+        for d in raw_dicts:
+            cve_id = str(d.get("cve", "")).strip().upper()
+            if cve_id in norm_map:
+                d["ai_remediation"] = norm_map[cve_id]
+
+    return ScoreResponse(
+        results=[RiskItem(**d) for d in raw_dicts],
+        count=len(raw_dicts),
+        ai_summary=ai_summary,
+    )
+
+
