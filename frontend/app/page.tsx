@@ -99,8 +99,9 @@ export default function Home() {
       </section>
 
       {/* ---- Scanner ---- */}
-      <section id="scan" className="mx-auto max-w-4xl px-6 py-24">
-        <div className="glass rounded-2xl p-6 sm:p-8">
+      <section id="scan" className="mx-auto max-w-7xl px-4 sm:px-6 py-20">
+        <div className="glass rounded-2xl p-6 sm:p-10 shadow-2xl border border-sky-500/20 backdrop-blur-xl">
+
           <div className="mb-5">
             <h2 className="text-2xl">
               <span className="font-display text-sky-300">Prioritize</span> a batch
@@ -197,12 +198,8 @@ export default function Home() {
           <a className="text-slate-400 hover:text-sky-300" href="https://www.first.org/epss/" target="_blank" rel="noreferrer">FIRST EPSS</a>, and{" "}
           <a className="text-slate-400 hover:text-sky-300" href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noreferrer">CISA KEV</a>.
         </p>
-        <p className="mt-2">
-          <a className="text-slate-400 hover:text-sky-300" href="https://github.com/AtharvS7/RiskSense" target="_blank" rel="noreferrer">
-            github.com/AtharvS7/RiskSense
-          </a>
-        </p>
       </footer>
+
     </main>
   );
 }

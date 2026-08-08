@@ -1,0 +1,5 @@
+cve,action,score,priority,cvss,epss,in_kev,kev_ransomware,days_overdue,ai_remediation
+CVE-2021-44228,Act,100,Critical,10,0.99999,true,true,1688,"Apply the latest patch from the Apache Software Foundation for Log4j or implement a configuration change to disable the vulnerable functionality."
+CVE-2019-0708,Act,98,Critical,9.8,0.99999,true,true,1558,"Install the security update provided by Microsoft for Remote Desktop Services or disable Remote Desktop Protocol (RDP) if not needed."
+CVE-2014-0160,Act,90,Critical,7.5,0.99999,true,false,1536,"Upgrade OpenSSL to version 1.0.2 or later, or apply the specific patch provided by your distribution to mitigate the vulnerability."
+CVE-2017-0144,Attend,95,Critical,8.8,0.9923,true,true,1459,""
