@@ -72,8 +72,8 @@ export default function Home() {
     <main>
       {/* ---- Hero ---- */}
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <span className="mb-6 rounded-full border border-sky-400/30 bg-sky-400/5 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-sky-300">
-          CVE triage, reimagined
+        <span className="mb-6 rounded-full border border-sky-400/30 bg-sky-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-sky-300 shadow-sm backdrop-blur-md">
+          Built for Buildfest&rsquo;26 &middot; AI Patch Prioritizer
         </span>
         <h1 className="max-w-4xl text-5xl leading-[1.05] tracking-tight sm:text-7xl">
           <span className="font-display text-sky-300">Decide.</span>{" "}
@@ -83,8 +83,8 @@ export default function Home() {
           RiskSense turns a list of CVEs into a transparent{" "}
           <b className="text-slate-100">SSVC decision</b> — Act, Attend, or Track — blending{" "}
           <b className="text-slate-100">CVSS</b> severity, <b className="text-slate-100">EPSS</b>{" "}
-          exploit probability, and <b className="text-slate-100">CISA KEV</b> intel. Reasoning
-          shown. No agent, no account.
+          exploit probability, <b className="text-slate-100">CISA KEV</b> intel, and{" "}
+          <b className="text-sky-300">GPT-4o-mini AI Remediation</b> for lean IT teams.
         </p>
         <a
           href="#scan"
@@ -97,6 +97,7 @@ export default function Home() {
           <span className="h-10 w-px animate-pulse bg-gradient-to-b from-sky-400/60 to-transparent" />
         </div>
       </section>
+
 
       {/* ---- Scanner ---- */}
       <section id="scan" className="mx-auto max-w-7xl px-4 sm:px-6 py-20">
@@ -198,7 +199,11 @@ export default function Home() {
           <a className="text-slate-400 hover:text-sky-300" href="https://www.first.org/epss/" target="_blank" rel="noreferrer">FIRST EPSS</a>, and{" "}
           <a className="text-slate-400 hover:text-sky-300" href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noreferrer">CISA KEV</a>.
         </p>
+        <p className="mt-2 text-xs text-slate-400">
+          Built for <span className="text-sky-300 font-semibold">Buildfest&rsquo;26</span> &middot; Hakelize Techworks
+        </p>
       </footer>
+
 
     </main>
   );

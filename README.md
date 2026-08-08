@@ -1,38 +1,46 @@
 <div align="center">
 
-# RiskSense
+# RiskSense — AI Vulnerability Patch Prioritizer
 
-**CVE triage that gives you a decision, not just a number.**
+**Built for Buildfest'26 · AI Vulnerability Patch Prioritizer for Lean IT Teams**
 
-Most tools (and every commercial scanner) hand you an opaque 0–100 risk score. RiskSense
-also outputs a transparent **SSVC decision — Act / Attend / Track** — the CISA / CMU-SEI
-methodology that prioritizes by *what to do*, not just *how bad it is*, with the reasoning
-shown for every CVE. Blends **CVSS** (severity), **EPSS** (exploit probability), and the
-**CISA KEV** catalog (active exploitation) — instantly, no agent, no account.
+Most security tools hand you an opaque 0–100 risk score. RiskSense outputs a transparent **SSVC decision — Act / Attend / Track** — enhanced by **GPT-4o-mini AI Triage & Patch Remediation Guidance** specifically for resource-constrained IT teams.
 
+![Built for Buildfest'26](https://img.shields.io/badge/Built_for-Buildfest'26-009688?style=flat)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+![OpenAI GPT-4o-mini](https://img.shields.io/badge/AI-GPT--4o--mini-purple?style=flat&logo=openai&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 </div>
 
 ---
 
-## Why RiskSense
+## Why RiskSense (Buildfest'26)
 
-A CVSS 9.8 that nobody is exploiting is often *less* urgent than a CVSS 7.5 that's in every
-ransomware playbook. Severity alone over-alerts. RiskSense triages the way a SOC or
-vulnerability-management team actually does — by combining severity with **likelihood** and
-**evidence of active exploitation**:
+Small IT teams can't patch every CVE immediately and need to know **which vulnerabilities are actually being exploited in the wild**. A theoretical CVSS 9.8 that nobody is exploiting is often *less* urgent than a CVSS 7.5 that's in every active ransomware playbook.
+
+RiskSense triages the way a SOC or vulnerability-management team actually does — by combining theoretical severity with **likelihood**, **evidence of active exploitation**, and **GPT-4o-mini AI guidance**:
 
 | Signal | Source | What it tells you |
 |---|---|---|
 | **CVSS base score** | [NVD](https://nvd.nist.gov/) | How bad is it *if* exploited? |
 | **EPSS** | [FIRST](https://www.first.org/epss/) | Probability it's exploited in the next 30 days |
-| **CISA KEV** | [CISA](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | Is it *already* being exploited in the wild? |
+| **CISA KEV** | [CISA](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | Is it *already* being exploited in the wild (including ransomware)? |
+| **AI Remediation Advisor** | **OpenAI GPT-4o-mini** | Executive summary & actionable sysadmin patch steps |
+
+---
+
+## AI Vulnerability Patch Prioritizer (GPT-4o-mini)
+
+RiskSense incorporates an **AI Triage & Remediation Advisor**:
+1. **Executive AI Briefing**: GPT-4o-mini analyzes the prioritized threat list and generates a 2-3 sentence top-level briefing on what action to take today.
+2. **Per-CVE Actionable Remediation**: Generates direct, practical mitigation steps for every single vulnerability (workarounds, patch versions, firewall rules).
+3. **Resilient Best-Effort Execution**: Asynchronous `httpx` API integration that gracefully degrades if an API key is missing.
+
+---
 
 ## Scoring methodology
 
@@ -46,11 +54,11 @@ if KEV + ransomware use:     score = max(score, 95)       # top of the queue
 
 **Priority bands:** `Critical ≥ 90 · High ≥ 70 · Medium ≥ 40 · Low < 40`
 
+---
+
 ## SSVC decision — the differentiator
 
-The 0–100 score ranks; the **SSVC action tells you what to do**. RiskSense derives it from
-three intrinsic decision points (the environmental/mission dimension needs asset context the
-tool doesn't have, so it's omitted and decisions stay conservative):
+The 0–100 score ranks; the **SSVC action tells you what to do** (CISA / CMU-SEI methodology):
 
 | Decision point | Derived from | Values |
 |---|---|---|
@@ -65,56 +73,20 @@ poc      + (total OR automatable)   → Attend     # exploit code likely exists
 none/low                            → Track      # routine patch cycle
 ```
 
-Results are **ranked by action tier first** (every Act above every Attend, above every
-Track), then by score. Hover any action in the UI to see the exact reasoning; it's also in
-the API (`ssvc.why`) and the CSV export.
+---
 
-## CISA deadline clock — the second differentiator
+## CISA deadline clock — SLA clock
 
-Every KEV entry carries a **binding remediation deadline** (CISA BOD 22-01, the `dueDate`
-field). Scanners download it; almost none show it. RiskSense turns it into a triage clock:
+Every KEV entry carries a **binding remediation deadline** (CISA BOD 22-01, `dueDate`). Within an action tier, **overdue CVEs outrank on-time ones** — the fire you're already late on gets triaged first.
 
-| SLA state | Meaning |
-|---|---|
-| `overdue` | The federally-mandated deadline has **already passed** — e.g. *"12d past CISA deadline"* |
-| `due` | KEV, deadline still ahead — *"9d until CISA deadline"* |
-| `none` | Not in KEV — no mandate |
-
-Within an action tier, **overdue CVEs outrank on-time ones** — the fire you're already late
-on gets triaged first. Surfaced in the UI's *Deadline* column, the API (`sla`, `days_overdue`),
-and the CSV. It reframes a finding from *"is it exploited?"* to *"you are past a legal deadline
-on something exploited right now."*
-
-Missing signals degrade gracefully — an unknown CVSS never blanks out an otherwise scorable
-CVE. Every response includes a `breakdown` so the score is explainable, not a black box.
-
-Example (live data):
-
-| CVE | Score | Priority | Why |
-|---|---|---|---|
-| CVE-2021-44228 (Log4Shell) | 100 | Critical | CVSS 10 · EPSS ~1.0 · KEV + ransomware |
-| CVE-2019-0708 (BlueKeep) | 98 | Critical | CVSS 9.8 · high EPSS · KEV |
-| CVE-2014-0160 (Heartbleed) | 90 | Critical | KEV floor applied |
-
-## Architecture
-
-```
-┌──────────────┐     POST /api/score      ┌─────────────────────┐
-│  Next.js UI  │ ───────────────────────► │     FastAPI          │
-│ (dashboard)  │ ◄─────────────────────── │  scoring + enrich    │
-└──────────────┘   ranked risk results    └─────────┬───────────┘
-                                                     │  (best-effort, cached)
-                                    ┌────────────────┼────────────────┐
-                                    ▼                ▼                ▼
-                                 NVD API        FIRST EPSS        CISA KEV
-```
+---
 
 ## Quick start
 
 ### Docker (recommended)
 ```bash
-git clone https://github.com/AtharvS7/RiskSense.git
-cd RiskSense
+git clone https://github.com/Harsha-code-per/Buildfest-26.git
+cd Buildfest-26
 docker compose up --build
 # Frontend → http://localhost:3000   API docs → http://localhost:8000/docs
 ```
@@ -132,58 +104,23 @@ npm install
 npm run dev                              # http://localhost:3000
 ```
 
-## API
-
-`POST /api/score`
-```json
-{ "cves": ["CVE-2021-44228", "CVE-2014-0160"] }
-```
-Response (ranked highest-risk first):
-```json
-{
-  "count": 2,
-  "results": [
-    {
-      "cve": "CVE-2021-44228", "score": 100.0, "priority": "Critical",
-      "cvss": 10.0, "epss": 0.99999, "in_kev": true, "kev_ransomware": true,
-      "breakdown": { "severity_component": 100.0, "likelihood_multiplier": 1.0, "kev_floor_applied": true }
-    }
-  ]
-}
-```
-Interactive docs at `/docs` (Swagger UI). `GET /health` for liveness.
+---
 
 ## Configuration
 
 | Variable | Default | Notes |
 |---|---|---|
-| `NVD_API_KEY` | *(none)* | Optional [free key](https://nvd.nist.gov/developers/request-an-api-key) — raises rate limit 5 → 50 req/30s |
+| `OPENAI_API_KEY` | *(none)* | Optional OpenAI key for AI-driven triage summaries & patch advice |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI GPT model selection |
+| `NVD_API_KEY` | *(none)* | Optional free NVD key — raises rate limit 5 → 50 req/30s |
 | `NVD_DELAY` | `6.0` / `0.6` | Seconds between NVD calls; default depends on whether a key is set |
 | `CORS_ORIGINS` | `*` | Comma-separated allowed origins |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Backend URL for the frontend |
 
-## Testing
-
-```bash
-cd backend && pytest        # scoring engine + API (offline, deterministic)
-```
-The scoring engine is pure and fully unit-tested; API tests stub enrichment so CI needs no
-network. Frontend is type-checked via `npm run build` in CI.
-
-## Roadmap
-
-- [ ] Bulk CVE import from `pip`/`npm`/OS package manifests
-- [ ] Configurable scoring weights per organization risk appetite
-- [ ] Historical EPSS trend sparklines
-- [ ] Auth + saved scans (currently stateless by design)
-- [ ] Live deployment (Render + Vercel)
+---
 
 ## Acknowledgements
 
-Data courtesy of [NVD](https://nvd.nist.gov/), [FIRST EPSS](https://www.first.org/epss/), and
-[CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog). Built by
-[Atharv Sawane](https://github.com/AtharvS7).
-
-## License
-
-[MIT](./LICENSE)
+* **Built for Buildfest'26** by Team **Hakelize Techworks**.
+* Enhanced with **GPT-4o-mini AI vulnerability patch prioritization**.
+* Data courtesy of [NVD](https://nvd.nist.gov/), [FIRST EPSS](https://www.first.org/epss/), and [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog).

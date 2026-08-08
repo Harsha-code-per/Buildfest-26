@@ -11,10 +11,11 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "RiskSense — Decide, don't just score",
+  title: "RiskSense — AI Vulnerability Patch Prioritizer | Built for Buildfest'26",
   description:
-    "CVE triage that gives you a decision, not a number: transparent SSVC (Act / Attend / Track) from CVSS + EPSS + CISA KEV.",
+    "AI Vulnerability Patch Prioritizer for Lean IT Teams: transparent SSVC decisions (Act / Attend / Track) + GPT-4o-mini AI Remediation from CVSS, EPSS & CISA KEV.",
 };
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
